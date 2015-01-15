@@ -14,7 +14,8 @@ var Week = React.createClass({
 		for(var i = 0; i < 7; i++) {
 			weekDate.setDate(weekDate.getDate() + 1);
 			var day = weekDate.getMonth() + 1 == this.props.month && weekDate.getDate();
-			if(selected.getMonth() == weekDate.getMonth() &&
+			if(selected.getFullYear() == weekDate.getFullYear() &&
+				selected.getMonth() == weekDate.getMonth() &&
 				selected.getDate() == weekDate.getDate())
 				days.push(<Day selected month={this.props.month} day={day}></Day>);
 			else
@@ -53,7 +54,7 @@ var Calendar = React.createClass({
 	},
 	render: function() {
 		var date = this.firstDay();
-		day = this.getMonthDay();
+		day = this.getMonthDay() + date.getDay();
 		weeks = [];
 		for(var i =0; i < Math.ceil(day / 7); i++) {
 			weeks[i] = <Week selected={this.state.selected} week={i} date={date.getDate() + i * 7 - date.getDay()} year={date.getFullYear()} month={date.getMonth() + 1}></Week>;
