@@ -11,7 +11,14 @@ var Day = React.createClass({
 	render: function() {
 		var date = this.props.date;
 		var today = new Date();
-		var cls = "picker__day picker__day--infocus";
+		var cls = "picker__day";
+		if(this.props.week == 0 && date.getDate() > 7) 
+			cls += " picker__day--outfocus";
+		else if(this.props.week > 1 && date.getDate() < 7) 
+			cls += " picker__day--outfocus";
+		else
+			cls += " picker__day--infocus";
+
 		if(this.props.selected)
 			cls += " picker__day--selected picker__day--highlighted";
 		if(DATES.compare(date, today))
@@ -21,16 +28,16 @@ var Day = React.createClass({
 });
 var Week = React.createClass({
 	render: function() {
-		var weekDate = new Date(this.props.year, this.props.month - 1, this.props.date - 1);
+		var weekDate = this.props.weekDate;
 		var days = [];
 		var selected = this.props.selected;
-		for(var i = 1; i <= 7; i++) {
+		for(var i = 0; i < 7; i++) {
 			var theDate = new Date(weekDate.getTime() + 86400 * i * 1000)
 			//var day = weekDate.getMonth() + 1 == this.props.month && weekDate.getDate();
 			if(DATES.compare(theDate, selected))
-				days.push(<Day onClick={this.props.onClick} selected date={theDate}></Day>);
+				days.push(<Day onClick={this.props.onClick} week={this.props.week} month={weekDate.getMonth()} selected date={theDate}></Day>);
 			else
-				days.push(<Day onClick={this.props.onClick} date={theDate}></Day>);
+				days.push(<Day onClick={this.props.onClick} week={this.props.week} month={weekDate.getMonth()} date={theDate}></Day>);
 		}
 		return <tr>{days}</tr>;
 	}
@@ -111,7 +118,9 @@ var Calendar = React.createClass({
 		day = this.getMonthDay() + date.getDay();
 		weeks = [];
 		for(var i =0; i < Math.ceil(day / 7); i++) {
-			weeks[i] = <Week onClick={this.select} selected={this.state.selected} week={i} date={date.getDate() + i * 7 - date.getDay()} year={date.getFullYear()} month={date.getMonth() + 1}></Week>;
+			var weekDate = new Date(date.getTime());
+			weekDate.setDate(weekDate.getDate() + i * 7 - date.getDay());
+			weeks[i] = <Week onClick={this.select} selected={this.state.selected} week={i} weekDate={weekDate}></Week>;
 		}
 		return (
 			<div className="picker--focused picker--opened">
