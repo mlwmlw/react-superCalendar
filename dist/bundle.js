@@ -58,6 +58,8 @@
 	var _ = __webpack_require__(4);
 	var DATES = {
 		compare: function(a, b) {
+			if(!a || !b)
+				return false;
 			return a.getFullYear() == b.getFullYear() &&
 				a.getMonth() == b.getMonth() &&
 				a.getDate() == b.getDate();
@@ -77,9 +79,9 @@
 
 			if(this.props.selected)
 				cls += " picker__day--selected picker__day--highlighted";
-			if(DATES.compare(date, today))
-				cls += " picker__day--today";
-			return React.createElement("td", {onClick: this.props.onClick.bind(this, date)}, React.createElement("div", {className: cls}, date.getDate()));
+			else if(DATES.compare(date, today))
+				cls += " picker__day--today picker__day--highlighted";
+			return React.createElement("td", {onClick: this.props.onClick.bind(null, date)}, React.createElement("div", {className: cls}, date.getDate()));
 		}
 	});
 	var Week = React.createClass({displayName: "Week",
@@ -90,10 +92,7 @@
 			for(var i = 0; i < 7; i++) {
 				var theDate = new Date(weekDate.getTime() + 86400 * i * 1000)
 				//var day = weekDate.getMonth() + 1 == this.props.month && weekDate.getDate();
-				if(DATES.compare(theDate, selected))
-					days.push(React.createElement(Day, {onClick: this.props.onClick, week: this.props.week, month: weekDate.getMonth(), selected: true, date: theDate}));
-				else
-					days.push(React.createElement(Day, {onClick: this.props.onClick, week: this.props.week, month: weekDate.getMonth(), date: theDate}));
+				days.push(React.createElement(Day, {selected: DATES.compare(theDate, selected), onClick: this.props.onClick, week: this.props.week, month: weekDate.getMonth(), date: theDate}));
 			}
 			return React.createElement("tr", null, days);
 		}
@@ -125,6 +124,47 @@
 						);
 		}
 	});
+	var Time = React.createClass({displayName: "Time",
+		render: function() {
+			var i = this.props.children;
+			return React.createElement("div", {itemProp: this.props.deg, key: i, style: {position: "absolute", top: "45%", left: "3%", width: "47%", transformOrigin: "right center", height: "1em", transform: "rotate(" + this.props.deg + "deg)"}}, 
+						React.createElement("span", {style: {position: "absolute", transform: "rotate(" + -this.props.deg + "deg)"}}, i> 0? i: 12)
+				)
+		}
+	});
+	var Times = React.createClass({displayName: "Times",
+		render: function() {
+			var time = [];
+			for(var i = 0; i< 12; i++) {
+				var deg = i * 30 + 90;
+				time.push(React.createElement(Time, {deg: deg}, i));
+			}
+			return React.createElement("div", null, time);
+		}
+	});
+	var Clock = React.createClass({displayName: "Clock",
+		getInitialState: function () {
+			return {deg: 0};
+		},
+		start: function(e) {
+			this.setState({drag: true});
+			this.setState({deg: +e.target.getAttribute('itemprop')});
+		},
+		end: function() {
+			this.setState({drag: false});
+		},
+		move: function(e) {
+			if(this.state.drag)
+				this.setState({deg: +e.target.getAttribute('itemprop')});
+		},
+		render: function() {
+			return React.createElement("div", {onMouseUp: this.end, onMouseMove: this.move, onMouseDown: this.start, style: {width: "150px", height: "150px", borderRadius: "150px", background: "#eee", border: "1px solid gray", marginTop: "300px", position: "relative", cursor: "pointer", WebkitUserSelect: "none"}}, 
+				React.createElement("div", {className: "point", style: {background: "#0095dd", borderRadius: 3, width: 3, height: 3, position: "absolute", top: "50%", left: "50%"}}), 
+				React.createElement("div", {className: "line", style: {border: "1px #c0e5f7 solid", marginTop: "50%", width: "45%", marginLeft: "5%", transform: "rotate(" + this.state.deg + "deg)", transformOrigin: "right center"}}), 
+				React.createElement(Times, null)
+			)
+		}
+	});
 	var Calendar = React.createClass({displayName: "Calendar",
 		getMonthDay: function(m) {
 			m = m || this.state.view.getMonth();
@@ -134,7 +174,9 @@
 			return date.getDate() + 1;
 		},
 		getInitialState: function() {
-			return {view: new Date(), selected: new Date()};
+			var state = {view: new Date(), selected: new Date()};
+			state.selected = null;
+			return state;
 		},
 		prev: function() {
 			var date = this.state.view;
@@ -179,27 +221,30 @@
 				weeks[i] = React.createElement(Week, {onClick: this.select, selected: this.state.selected, week: i, weekDate: weekDate});
 			}
 			return (
-				React.createElement("div", {className: "picker--focused picker--opened"}, 
-				React.createElement("div", {className: "picker__holder"}, 
-					React.createElement("div", {className: "picker__frame"}, 
-					React.createElement("div", {className: "picker__wrap"}, 
-					React.createElement("div", {className: "picker__box"}, 
-					React.createElement("div", {className: "picker__header"}, 
-						React.createElement("div", {className: "picker__month"}, this.getMonthName(this.state.view.getMonth())), 
-						React.createElement("div", {className: "picker__year"}, this.state.view.getFullYear()), 
-						React.createElement("div", {className: "picker__nav--prev", onClick: this.prev, role: "button", title: "Previous month"}, " "), 
-						React.createElement("div", {className: "picker__nav--next", onClick: this.next, role: "button", title: "Next month"}, " ")
-					), 
-					React.createElement("table", {className: "picker__table"}, 
-						React.createElement(WeekHead, null), 
-						React.createElement("tbody", null, 
-						weeks
+				React.createElement("div", null, 
+					React.createElement("div", {className: "picker--focused picker--opened", style: {position: "relative", height: 10}}, 
+						React.createElement("div", {className: "picker__holder"}, 
+							React.createElement("div", {className: "picker__frame"}, 
+								React.createElement("div", {className: "picker__wrap"}, 
+									React.createElement("div", {className: "picker__box"}, 
+										React.createElement("div", {className: "picker__header"}, 
+											React.createElement("div", {className: "picker__month"}, this.getMonthName(this.state.view.getMonth())), 
+											React.createElement("div", {className: "picker__year"}, this.state.view.getFullYear()), 
+											React.createElement("div", {className: "picker__nav--prev", onClick: this.prev, role: "button", title: "Previous month"}, " "), 
+											React.createElement("div", {className: "picker__nav--next", onClick: this.next, role: "button", title: "Next month"}, " ")
+										), 
+										React.createElement("table", {className: "picker__table"}, 
+											React.createElement(WeekHead, null), 
+											React.createElement("tbody", null, 
+											weeks
+											)
+										)
+									)
+								)
+							)
 						)
-					)
-					)
-					)
-					)
-				)
+					), 
+					React.createElement(Clock, null)
 				)
 			);
 		}
