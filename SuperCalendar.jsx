@@ -166,7 +166,7 @@ var Clock = React.createClass({
 	},
 	render: function() {
 		var mode = {width: "150px", height: "150px", borderRadius: "150px", background: "", border: "1px solid gray", marginTop: "300px", position: "relative", cursor: "pointer", WebkitUserSelect: "none"};
-		if(this.state.hour > 12) {
+		if(this.state.hour >= 18 || this.state.hour <= 6) {
 			mode.background = "#a3a3a3";
 			mode.color = "white";
 		}
