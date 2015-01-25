@@ -77,7 +77,7 @@ var Time = React.createClass({
 			style.background = "#b1dcfb";
 			style.fontWeight = "bold";
 		}
-		return <div ref={i} itemProp={i} key={i} style={{position: "absolute", top: "43%", left: "4%", width: "45%", transformOrigin: "right center", height: "1.5em", transform: "rotate(" + deg + "deg)"}}>
+		return <div ref={i} itemProp={this.props.hour} key={i} style={{position: "absolute", top: "43%", left: "4%", width: "45%", transformOrigin: "right center", height: "1.5em", transform: "rotate(" + deg + "deg)"}}>
 					<span style={style}>{i}</span>
 			</div>
 	}
@@ -110,9 +110,16 @@ var Times = React.createClass({
 				hour = i * 5;
 			}
 
+			var show = i;
+			if(this.props.mode == 'minute') {
+				show = show * 5;
+			}
+			else if(i == 0){
+				show = 12;
+			}
 			var deg = i * 30 + 90;
 			var selected = this.props.mode == 'hour' ? i == this.hour % 12: this.minute / 5 == i;
-			time.push(<Time deg={deg} selected={selected} ref={hour}>{hour}</Time>);
+			time.push(<Time deg={deg} selected={selected} hour={hour} ref={hour}>{show}</Time>);
 		}
 		return <div ref="time">{time}</div>;
 	}
@@ -121,7 +128,7 @@ var Clock = React.createClass({
 	getInitialState: function () {
 		return {hour: 0, minute: 0, hourDeg: 90, minuteDeg: 90, mode: 'hour'};
 	},
-	setHour: function(h) {
+	setHour: function(h, check) {
 		if(h == undefined)
 			return;
  		var deg = h * 30 + 90
@@ -130,40 +137,46 @@ var Clock = React.createClass({
 		deg = deg % 360;
 		this.setState({hour: +h, hourDeg: deg});
 		this.refs.times.setHour(h);
-		this.props.onChange((this.state.hour < 10 ? "0": "") + this.state.hour + ":" + (this.state.minute < 10 ? "0": "") + this.state.minute);
+		if(check)
+			this.props.onChange((this.state.hour < 10 ? "0": "") + this.state.hour + ":" + (this.state.minute < 10 ? "0": "") + this.state.minute);
 	},
-	setMinute: function(m) {
+	setMinute: function(m, check) {
 		if(m == undefined)
 			return;
 		var deg = m / 5 * 30 + 90
 		this.setState({minute: +m, minuteDeg: deg});
 		this.refs.times.setMinute(m);
-		this.props.onChange((this.state.hour < 10 ? "0": "") + this.state.hour + ":" + (this.state.minute < 10 ? "0": "") + this.state.minute);
+		if(check)
+			this.props.onChange((this.state.hour < 10 ? "0": "") + this.state.hour + ":" + (this.state.minute < 10 ? "0": "") + this.state.minute);
 	},
-	setTime: function(t) {
+	setTime: function(t, check) {
 		if(this.state.mode == "hour") {
-			this.setHour(t)
+			this.setHour(t, check);
 		}
 		else {
-			this.setMinute(t);
+			this.setMinute(t, check);
 		}
 	},
-	start: function(e) {
-		this.setState({drag: true});
-		this.setTime(e.target.getAttribute('itemprop'));
-	},
-	end: function() {
+	end: function(e) {
+		this.setTime(e.target.getAttribute('itemprop'), true);
 		this.setState({drag: false, mode: this.state.mode == 'hour'? 'minute': 'hour'});
 	},
 	move: function(e) {
-		if(this.state.drag) {
-			this.setTime(e.target.getAttribute('itemprop'));
-		}
+		this.setTime(e.target.getAttribute('itemprop') || e.target.parentElement.getAttribute('itemprop'), false);
 	},
 	render: function() {
+		var mode = {width: "150px", height: "150px", borderRadius: "150px", background: "", border: "1px solid gray", marginTop: "300px", position: "relative", cursor: "pointer", WebkitUserSelect: "none"};
+		if(this.state.hour > 12) {
+			mode.background = "#a3a3a3";
+			mode.color = "white";
+		}
+		else {
+			mode.background = "white";
+			mode.color = "black";
+		}
 		var h = this.state.hourDeg;
 		var m = this.state.minuteDeg;
-		return <div onMouseUp={this.end} onMouseMove={this.move} onMouseDown={this.start} style={{width: "150px", height: "150px", borderRadius: "150px", background: "#eee", border: "1px solid gray", marginTop: "300px", position: "relative", cursor: "pointer", WebkitUserSelect: "none"}}>
+		return <div onMouseMove={this.move} onMouseDown={this.end} style={mode}>
 			<div className="point" style={{background: "#0095dd", borderRadius: 5, width: 5, height: 5, position: "absolute", top: "50%", left: "48.5%", zIndex: 2}}></div>
 			<div className="line" style={{position: "absolute", background: this.state.mode =="hour" ? "#c0e5f7": "gray", height: "3px", borderRadius: "3px", marginTop: "50%", width: "20%", marginLeft: "30%", transform: "rotate(" + h + "deg)", transformOrigin: "right center", transition: "all 0.2s ease"}}>
 			</div>
