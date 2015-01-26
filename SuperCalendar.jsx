@@ -95,31 +95,16 @@ var Times = React.createClass({
 		var time = [];
 		var hour = null;
 		for(var i = 0; i< 12; i++) {
-			hour = i;
-			if(this.hour > 6 && i < 6)
-				hour = i + 12; 
-			if(this.hour > 12 && i >= 6) 
-				hour = i + 12;
-			if(this.hour > 18 && i <= 6)
-				hour = i;
-			if(this.hour > 12 && i == 0)
-				hour = 24;
-			if(hour == 0)
-				hour = 12;
-			if(this.props.mode == 'minute') {
+			if(this.hour > 12)
+				hour = i == 0 ? 24: i + 12;
+			else
+				hour = i == 0 ? 12: i;
+			if(this.props.mode == 'minute')
 				hour = i * 5;
-			}
-
-			var show = i;
-			if(this.props.mode == 'minute') {
-				show = show * 5;
-			}
-			else if(i == 0){
-				show = 12;
-			}
+			
 			var deg = i * 30 + 90;
 			var selected = this.props.mode == 'hour' ? i == this.hour % 12: this.minute / 5 == i;
-			time.push(<Time deg={deg} selected={selected} hour={hour} ref={hour}>{show}</Time>);
+			time.push(<Time deg={deg} selected={selected} hour={hour} ref={hour}>{hour}</Time>);
 		}
 		return <div ref="time">{time}</div>;
 	}
@@ -135,7 +120,13 @@ var Clock = React.createClass({
 		if(deg + 360 - this.state.deg < 180)
 			deg += 360;
 		deg = deg % 360;
-		this.setState({hour: +h, hourDeg: deg});
+		if(this.state.hourDeg <= 90 && deg <= 180 && deg > 90)
+			h = this.state.hour < 13 ? +h + 12 : +h - 12;
+		else if(deg <= 90 && this.state.hourDeg <= 180 && this.state.hourDeg > 90)
+			h = this.state.hour > 13 ? +h - 12 : +h + 12;
+		else
+			h = +h;
+		this.setState({hour: h, hourDeg: deg});
 		this.refs.times.setHour(h);
 		if(check)
 			this.props.onChange((this.state.hour < 10 ? "0": "") + this.state.hour + ":" + (this.state.minute < 10 ? "0": "") + this.state.minute);
@@ -145,7 +136,7 @@ var Clock = React.createClass({
 			return;
 		var deg = m / 5 * 30 + 90
 		this.setState({minute: +m, minuteDeg: deg});
-		this.refs.times.setMinute(m);
+		this.refs.times.setMinute(+m);
 		if(check)
 			this.props.onChange((this.state.hour < 10 ? "0": "") + this.state.hour + ":" + (this.state.minute < 10 ? "0": "") + this.state.minute);
 	},
@@ -158,14 +149,26 @@ var Clock = React.createClass({
 		}
 	},
 	end: function(e) {
-		this.setTime(e.target.getAttribute('itemprop'), true);
-		this.setState({drag: false, mode: this.state.mode == 'hour'? 'minute': 'hour'});
+		if(e.button == 2)
+			return this.setState({mode: 'hour'});
+		if(!this.state.drag) {
+			this.setState({drag: true});
+		}
+		else if(this.state.drag && this.state.mode == 'hour') {
+			this.setTime(e.target.getAttribute('itemprop'), true);
+			this.setState({mode: this.state.mode == 'hour'? 'minute': 'hour'});
+		}
+		else if(this.state.drag && this.state.mode == 'minute') {
+			this.setTime(e.target.getAttribute('itemprop'), true);
+			this.setState({drag: false, mode: this.state.mode == 'hour'? 'minute': 'hour'});
+		}
 	},
 	move: function(e) {
-		this.setTime(e.target.getAttribute('itemprop') || e.target.parentElement.getAttribute('itemprop'), false);
+		if(this.state.drag) 
+			this.setTime(e.target.getAttribute('itemprop') || e.target.parentElement.getAttribute('itemprop'), false);
 	},
 	render: function() {
-		var mode = {width: "150px", height: "150px", borderRadius: "150px", background: "", border: "1px solid gray", marginTop: "300px", position: "relative", cursor: "pointer", WebkitUserSelect: "none"};
+		var mode = {width: "150px", height: "150px", borderRadius: "150px", background: "", border: "1px solid gray", marginTop: "230px", position: "relative", cursor: "pointer", WebkitUserSelect: "none"};
 		if(this.state.hour >= 18 || this.state.hour <= 6) {
 			mode.background = "#a3a3a3";
 			mode.color = "white";
@@ -176,7 +179,7 @@ var Clock = React.createClass({
 		}
 		var h = this.state.hourDeg;
 		var m = this.state.minuteDeg;
-		return <div onMouseMove={this.move} onMouseDown={this.end} style={mode}>
+		return <div onContextMenu={function(e) { e.preventDefault(); }} onMouseMove={this.move} onMouseDown={this.end} style={mode}>
 			<div className="point" style={{background: "#0095dd", borderRadius: 5, width: 5, height: 5, position: "absolute", top: "50%", left: "48.5%", zIndex: 2}}></div>
 			<div className="line" style={{position: "absolute", background: this.state.mode =="hour" ? "#c0e5f7": "gray", height: "3px", borderRadius: "3px", marginTop: "50%", width: "20%", marginLeft: "30%", transform: "rotate(" + h + "deg)", transformOrigin: "right center", transition: "all 0.2s ease"}}>
 			</div>
@@ -195,7 +198,7 @@ var Calendar = React.createClass({
 		return date.getDate() + 1;
 	},
 	getInitialState: function() {
-		var state = {view: new Date(), selected: new Date()};
+		var state = {view: new Date(), selected: new Date(), time: "00:00"};
 		state.selected = null;
 		return state;
 	},
@@ -214,9 +217,7 @@ var Calendar = React.createClass({
 		date.setDate(1);
 		return date;
 	},
-	setTime: function(h) {
-		this.refs.input.getDOMNode().value = h;
-	},
+	
 	getMonthName: function(i) {
 		var map = ["January",
 		"February",
@@ -232,8 +233,25 @@ var Calendar = React.createClass({
 		"December"];
 		return map[i];
 	},
+	format: function(format) {
+		var date = this.state.selected; 
+		var time = this.state.time.split(":");
+		return format.replace("Y", date.getFullYear())
+					.replace("m", (date.getMonth() < 11 ? "0" : "") + (+date.getMonth()+1))
+					.replace("d", (date.getDate() < 10 ? "0": "") + date.getDate())
+					.replace("H", time[0])
+					.replace("i", time[1]);
+	},
+	setTime: function(h) {
+		this.setState({time: h});
+		setTimeout(this.setInput, 1);
+	},
 	select: function(date) {
 		this.setState({selected: date});
+		setTimeout(this.setInput, 1);
+	},
+	setInput: function() {
+		this.refs.input.getDOMNode().value = this.format("Y-m-d H:i");
 	},
 	render: function() {
 		var date = this.firstDay();
