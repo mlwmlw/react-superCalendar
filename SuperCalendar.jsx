@@ -122,8 +122,8 @@ var Clock = React.createClass({
 		deg = deg % 360;
 		if(this.state.hourDeg <= 90 && deg <= 180 && deg > 90)
 			h = this.state.hour < 13 ? +h + 12 : +h - 12;
-		else if(deg <= 90 && this.state.hourDeg <= 180 && this.state.hourDeg > 90)
-			h = this.state.hour > 13 ? +h - 12 : +h + 12;
+		else if(this.state.hourDeg <= 180 && deg <= 90 && this.state.hourDeg > 90)
+			h = this.state.hour >= 13 ? +h - 12 : +h + 12;
 		else
 			h = +h;
 		this.setState({hour: h, hourDeg: deg});
@@ -152,15 +152,15 @@ var Clock = React.createClass({
 		if(e.button == 2)
 			return this.setState({mode: 'hour'});
 		if(!this.state.drag) {
-			this.setState({drag: true});
+			this.setState({drag: true, mode: 'hour'});
 		}
 		else if(this.state.drag && this.state.mode == 'hour') {
 			this.setTime(e.target.getAttribute('itemprop'), true);
-			this.setState({mode: this.state.mode == 'hour'? 'minute': 'hour'});
+			this.setState({mode: 'minute'});
 		}
 		else if(this.state.drag && this.state.mode == 'minute') {
 			this.setTime(e.target.getAttribute('itemprop'), true);
-			this.setState({drag: false, mode: this.state.mode == 'hour'? 'minute': 'hour'});
+			this.setState({drag: false, mode: null});
 		}
 	},
 	move: function(e) {
@@ -234,7 +234,7 @@ var Calendar = React.createClass({
 		return map[i];
 	},
 	format: function(format) {
-		var date = this.state.selected; 
+		var date = this.state.selected || new Date(); 
 		var time = this.state.time.split(":");
 		return format.replace("Y", date.getFullYear())
 					.replace("m", (date.getMonth() < 11 ? "0" : "") + (+date.getMonth()+1))
